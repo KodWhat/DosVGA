@@ -13,25 +13,25 @@
 #define BIOS_INT10_CHAR_GEN_SVC_GET_INFO_VEC43H 0x01
 #define BIOS_INT10_CHAR_GEN_SVC_GET_INFO_8x16 0x06
 
-static byte* PRIV_VgaDisplay = (byte*)0xA0000000L;
-static VGA_CharGenInfo PRIV_CharGenInfo;
+static byte* p_vga_display = (byte*)0xA0000000L;
+static dosvga_char_gen_info p_char_gen_info;
 
-static void PRIV_EnsureInitialized();
-static void PRIV_SetMode(byte mode);
-static void PRIV_InitCharGenInfo();
-static void PRIV_DrawCharacterByte(byte charByte, short x, short y, byte color);
+static void p_dosvga_ensure_initialized();
+static void p_dosvga_set_mode(byte mode);
+static void p_dosvga_init_char_gen_info();
+static void p_dosvga_draw_character_byte(byte charByte, short x, short y, byte color);
 
-void VGA_SetTextMode()
+void dosvga_set_text_mode()
 {
-    PRIV_SetMode(0x03); // Default text mode
+    p_dosvga_set_mode(0x03); // Default text mode
 }
 
-void VGA_SetVga256Mode()
+void dosvga_set_vga_256_colors_mode()
 {
-    PRIV_SetMode(0x13); // VGA 256 colors
+    p_dosvga_set_mode(0x13); // VGA 256 colors
 }
 
-void VGA_DrawPixel(short x, short y, byte color)
+void dosvga_draw_pixel(short x, short y, byte color)
 {
     // Safe position
     if(x >= VGA_WIDTH || y >= VGA_HEIGHT)
@@ -39,34 +39,34 @@ void VGA_DrawPixel(short x, short y, byte color)
         return;
     }
     
-    PRIV_VgaDisplay[VGA_WIDTH * y + x] = color;
+    p_vga_display[VGA_WIDTH * y + x] = color;
 }
 
-void VGA_DrawCharacter(char character, short x, short y, byte color)
+void dosvga_draw_character(char character, short x, short y, byte color)
 {
     byte* charStart;
     byte line;
     
-    PRIV_EnsureInitialized();
+    p_dosvga_ensure_initialized();
 
-    charStart = (byte*)((PRIV_CharGenInfo.vector) + character * PRIV_CharGenInfo.bytesPerChar);
+    charStart = (byte*)((p_char_gen_info.vector) + character * p_char_gen_info.bytesPerChar);
 
-    for(line = 0; line < PRIV_CharGenInfo.bytesPerChar; line++)
+    for(line = 0; line < p_char_gen_info.bytesPerChar; line++)
     {
-        PRIV_DrawCharacterByte(charStart[line], x, y + line, color);
+        p_dosvga_draw_character_byte(charStart[line], x, y + line, color);
     }
 }
 
-void VGA_PrintText(char* string, short x, short y, byte color)
+void dosvga_print_text(char* string, short x, short y, byte color)
 {
     int index = 0;
     char c = string[index];
     
-    PRIV_EnsureInitialized();
+    p_dosvga_ensure_initialized();
     
     while(c != '\0')
     {
-        VGA_DrawCharacter(string[index], x + index * PRIV_CharGenInfo.charWidth, y, color);
+        dosvga_draw_character(string[index], x + index * p_char_gen_info.charWidth, y, color);
         
         index++;
         c = string[index];
@@ -74,15 +74,15 @@ void VGA_PrintText(char* string, short x, short y, byte color)
 }
 
 // Private functions
-static void PRIV_EnsureInitialized()
+static void p_dosvga_ensure_initialized()
 {
-    if(PRIV_CharGenInfo.vector == NULL)
+    if(p_char_gen_info.vector == NULL)
     {
-        PRIV_InitCharGenInfo();
+        p_dosvga_init_char_gen_info();
     }
 }
 
-static void PRIV_SetMode(byte mode)
+static void p_dosvga_set_mode(byte mode)
 {
     union REGS regs;
 
@@ -91,7 +91,7 @@ static void PRIV_SetMode(byte mode)
     int86(BIOS_INT10, &regs, &regs); // Call interupt and set graphics mode
 }
 
-static void PRIV_InitCharGenInfo()
+static void p_dosvga_init_char_gen_info()
 {
     union REGPACK regs;
 
@@ -101,13 +101,13 @@ static void PRIV_InitCharGenInfo()
 
     intr(BIOS_INT10, &regs);
     
-    PRIV_CharGenInfo.vector = (byte*) MK_FP(regs.w.es, regs.w.bp);
-    PRIV_CharGenInfo.bytesPerChar = 8;
-    PRIV_CharGenInfo.charWidth = 8;
-    PRIV_CharGenInfo.charHeight = 8;
+    p_char_gen_info.vector = (byte*) MK_FP(regs.w.es, regs.w.bp);
+    p_char_gen_info.bytesPerChar = 8;
+    p_char_gen_info.charWidth = 8;
+    p_char_gen_info.charHeight = 8;
 }
 
-static void PRIV_DrawCharacterByte(byte charByte, short x, short y, byte color)
+static void p_dosvga_draw_character_byte(byte charByte, short x, short y, byte color)
 {
     byte mask = 0x80;
 
@@ -117,7 +117,7 @@ static void PRIV_DrawCharacterByte(byte charByte, short x, short y, byte color)
     {
         if((mask & charByte) != 0)
         {
-            VGA_DrawPixel(xBit, y, color);
+            dosvga_draw_pixel(xBit, y, color);
         }
         
         mask = mask >> 1;

@@ -13,16 +13,16 @@ typedef struct
     int bytesPerChar;
     short charWidth;
     short charHeight;
-} VGA_CharGenInfo;
+} dosvga_char_gen_info;
 
-void VGA_SetTextMode();
+void dosvga_set_text_mode();
 
-void VGA_SetVga256Mode();
+void dosvga_set_vga_256_colors_mode();
 
-void VGA_DrawPixel(short x, short y, byte color);
+void dosvga_draw_pixel(short x, short y, byte color);
 
-void VGA_DrawCharacter(char character, short x, short y, byte color);
+void dosvga_draw_character(char character, short x, short y, byte color);
 
-void VGA_PrintText(char* string, short x, short y, byte color);
+void dosvga_print_text(char* string, short x, short y, byte color);
 
 #endif
